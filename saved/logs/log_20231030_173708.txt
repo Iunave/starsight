@@ -1,0 +1,24 @@
+[17:37:08.600] [main] [log.cpp:38] [INFO] - created logger
+[17:37:08.600] [main] [log.cpp:39] [INFO] - logging to "/home/user/Programs/starsight/saved/logs/log_20231030_173708.txt"
+[17:37:08.600] [main] [window.cpp:37] [INFO] - initializing glfw
+[17:37:08.629] [main] [window.cpp:12] [INFO] - creating window starsight
+[17:37:08.664] [main] [vk_context.cpp:296] [INFO] - creating vulkan context
+[17:37:08.664] [main] [vk_context.cpp:347] [INFO] - creating instance
+[17:37:08.664] [main] [vk_context.cpp:362] [INFO] - using validation layer VK_LAYER_KHRONOS_validation
+[17:37:08.664] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_KHR_surface
+[17:37:08.664] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_KHR_xcb_surface
+[17:37:08.664] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_EXT_debug_utils
+[17:37:08.749] [main] [vk_context.cpp:390] [INFO] - creating debug messenger
+[17:37:08.749] [main] [vk_context.cpp:404] [INFO] - picking physical device
+[17:37:08.751] [main] [vk_context.cpp:410] [INFO] - checking AMD Radeon RX 5700 XT (RADV NAVI10)
+[17:37:08.751] [main] [vk_context.cpp:451] [INFO] - creating logical device
+[17:37:08.751] [main] [vk_context.cpp:480] [INFO] - using device extension VK_KHR_swapchain
+[17:37:08.751] [main] [vk_context.cpp:480] [INFO] - using device extension VK_EXT_conditional_rendering
+[17:37:08.771] [main] [vk_context.cpp:518] [INFO] - creating vulkan memory allocator
+[17:37:08.771] [main] [vk_context.cpp:557] [INFO] - creating command pool
+[17:37:08.781] [main] [vk_context.cpp:59] [ERROR] - Severity: Error | Type: { Validation } | messageIdNumber: 1457732636 | MessageIdName: VUID-vkCreateCommandPool-queueFamilyIndex-01937
+Message: Validation Error: [ VUID-vkCreateCommandPool-queueFamilyIndex-01937 ] | MessageID = 0x56e33c1c | vkCreateCommandPool(): pCreateInfo->queueFamilyIndex is VK_QUEUE_FAMILY_IGNORED, but it is required to provide a valid queue family index value. The Vulkan spec states: pCreateInfo->queueFamilyIndex must be the index of a queue family available in the logical device device (https://vulkan.lunarg.com/doc/view/1.3.268.0/linux/1.3-extensions/vkspec.html#VUID-vkCreateCommandPool-queueFamilyIndex-01937)
+Objects: (0)
+Command Buffer Labels: (0)
+Queue Labels: (0)
+

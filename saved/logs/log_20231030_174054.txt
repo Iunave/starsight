@@ -1,0 +1,27 @@
+[17:40:54.694] [main] [log.cpp:38] [INFO] - created logger
+[17:40:54.694] [main] [log.cpp:39] [INFO] - logging to "/home/user/Programs/starsight/saved/logs/log_20231030_174054.txt"
+[17:40:54.694] [main] [window.cpp:37] [INFO] - initializing glfw
+[17:40:54.876] [main] [window.cpp:12] [INFO] - creating window starsight
+[17:40:54.920] [main] [vk_context.cpp:296] [INFO] - creating vulkan context
+[17:40:54.920] [main] [vk_context.cpp:347] [INFO] - creating instance
+[17:40:54.920] [main] [vk_context.cpp:362] [INFO] - using validation layer VK_LAYER_KHRONOS_validation
+[17:40:54.920] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_KHR_surface
+[17:40:54.920] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_KHR_xcb_surface
+[17:40:54.920] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_EXT_debug_utils
+[17:40:55.033] [main] [vk_context.cpp:390] [INFO] - creating debug messenger
+[17:40:55.034] [main] [vk_context.cpp:404] [INFO] - picking physical device
+[17:40:55.035] [main] [vk_context.cpp:410] [INFO] - checking AMD Radeon RX 5700 XT (RADV NAVI10)
+[17:40:55.036] [main] [vk_context.cpp:451] [INFO] - creating logical device
+[17:40:55.036] [main] [vk_context.cpp:480] [INFO] - using device extension VK_KHR_swapchain
+[17:40:55.036] [main] [vk_context.cpp:480] [INFO] - using device extension VK_EXT_conditional_rendering
+[17:40:55.054] [main] [vk_context.cpp:518] [INFO] - creating vulkan memory allocator
+[17:40:55.054] [main] [vk_context.cpp:557] [INFO] - creating command pool
+[17:40:55.054] [main] [vk_context.cpp:536] [INFO] - initializing caches
+[17:40:57.163] [main] [vk_context.cpp:332] [INFO] - destroying vulkan context
+[17:40:57.165] [main] [vk_context.cpp:59] [ERROR] - Severity: Error | Type: { Validation } | MessageIdNumber: 1215490720 | MessageIdName: VUID-vkDestroyDevice-device-05137
+Message: Validation Error: [ VUID-vkDestroyDevice-device-05137 ] Object 0: handle = 0xfab64d0000000002, name = graphics command pool, type = VK_OBJECT_TYPE_COMMAND_POOL; | MessageID = 0x4872eaa0 | vkCreateDevice():  OBJ ERROR : For VkDevice 0x55fa620a4580[logical device], VkCommandPool 0xfab64d0000000002[graphics command pool] has not been destroyed. The Vulkan spec states: All child objects created on device must have been destroyed prior to destroying device (https://vulkan.lunarg.com/doc/view/1.3.268.0/linux/1.3-extensions/vkspec.html#VUID-vkDestroyDevice-device-05137)
+Objects: (1)
+Object[0] = Type: CommandPool | Handle: 18065711617638662146 | Name: graphics command pool
+Command Buffer Labels: (0)
+Queue Labels: (0)
+

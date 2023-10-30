@@ -1,0 +1,36 @@
+[17:23:37.330] [main] [log.cpp:38] [INFO] - created logger
+[17:23:37.330] [main] [log.cpp:39] [INFO] - logging to "/home/user/Programs/starsight/saved/logs/log_20231030_172337.txt"
+[17:23:37.330] [main] [window.cpp:37] [INFO] - initializing glfw
+[17:23:37.365] [main] [window.cpp:12] [INFO] - creating window starsight
+[17:23:37.393] [main] [vk_context.cpp:304] [INFO] - creating vulkan context
+[17:23:37.393] [main] [vk_context.cpp:355] [INFO] - creating instance
+[17:23:37.393] [main] [vk_context.cpp:370] [INFO] - using validation layer VK_LAYER_KHRONOS_validation
+[17:23:37.393] [main] [vk_context.cpp:375] [INFO] - using instance extension VK_KHR_surface
+[17:23:37.393] [main] [vk_context.cpp:375] [INFO] - using instance extension VK_KHR_xcb_surface
+[17:23:37.393] [main] [vk_context.cpp:375] [INFO] - using instance extension VK_EXT_debug_utils
+[17:23:37.394] [main] [vk_context.cpp:63] [WARNING] - Severity: {} Type: {}
+messageIdNumber: Warning
+MessageIdName: { General }
+Message: 0
+Loader Message
+[17:23:37.432] [main] [vk_context.cpp:63] [WARNING] - Severity: {} Type: {}
+messageIdNumber: Warning
+MessageIdName: { Validation }
+Message: -2111305990
+UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging
+[17:23:37.459] [main] [vk_context.cpp:398] [INFO] - creating debug messenger
+[17:23:37.459] [main] [vk_context.cpp:412] [INFO] - picking physical device
+[17:23:37.460] [main] [vk_context.cpp:418] [INFO] - checking AMD Radeon RX 5700 XT (RADV NAVI10)
+[17:23:37.460] [main] [vk_context.cpp:459] [INFO] - creating logical device
+[17:23:37.460] [main] [vk_context.cpp:488] [INFO] - using device extension VK_KHR_swapchain
+[17:23:37.460] [main] [vk_context.cpp:488] [INFO] - using device extension VK_EXT_conditional_rendering
+[17:23:37.486] [main] [vk_context.cpp:526] [INFO] - creating vulkan memory allocator
+[17:23:37.486] [main] [vk_context.cpp:565] [INFO] - creating command pool
+[17:23:37.486] [main] [vk_context.cpp:63] [WARNING] - Severity: {} Type: {}
+messageIdNumber: Warning
+MessageIdName: { Performance }
+Message: -2027362524
+UNASSIGNED-BestPractices-vkCreateCommandPool-command-buffer-reset
+[17:23:37.486] [main] [vk_context.cpp:544] [INFO] - initializing caches
+[17:23:52.924] [main] [window.cpp:23] [INFO] - closing window starsight
+[17:23:52.924] [main] [window.cpp:31] [INFO] - terminating glfw

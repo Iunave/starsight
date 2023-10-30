@@ -1,0 +1,22 @@
+[17:41:58.149] [main] [log.cpp:38] [INFO] - created logger
+[17:41:58.149] [main] [log.cpp:39] [INFO] - logging to "/home/user/Programs/starsight/saved/logs/log_20231030_174158.txt"
+[17:41:58.149] [main] [window.cpp:37] [INFO] - initializing glfw
+[17:41:58.176] [main] [window.cpp:12] [INFO] - creating window starsight
+[17:41:58.202] [main] [vk_context.cpp:296] [INFO] - creating vulkan context
+[17:41:58.202] [main] [vk_context.cpp:347] [INFO] - creating instance
+[17:41:58.202] [main] [vk_context.cpp:362] [INFO] - using validation layer VK_LAYER_KHRONOS_validation
+[17:41:58.202] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_KHR_surface
+[17:41:58.202] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_KHR_xcb_surface
+[17:41:58.202] [main] [vk_context.cpp:367] [INFO] - using instance extension VK_EXT_debug_utils
+[17:41:58.251] [main] [vk_context.cpp:390] [INFO] - creating debug messenger
+[17:41:58.251] [main] [vk_context.cpp:404] [INFO] - picking physical device
+[17:41:58.252] [main] [vk_context.cpp:410] [INFO] - checking AMD Radeon RX 5700 XT (RADV NAVI10)
+[17:41:58.252] [main] [vk_context.cpp:451] [INFO] - creating logical device
+[17:41:58.252] [main] [vk_context.cpp:480] [INFO] - using device extension VK_KHR_swapchain
+[17:41:58.252] [main] [vk_context.cpp:480] [INFO] - using device extension VK_EXT_conditional_rendering
+[17:41:58.265] [main] [vk_context.cpp:518] [INFO] - creating vulkan memory allocator
+[17:41:58.265] [main] [vk_context.cpp:557] [INFO] - creating command pool
+[17:41:58.265] [main] [vk_context.cpp:536] [INFO] - initializing caches
+[17:42:00.753] [main] [vk_context.cpp:332] [INFO] - destroying vulkan context
+[17:42:00.772] [main] [window.cpp:23] [INFO] - closing window starsight
+[17:42:00.773] [main] [window.cpp:31] [INFO] - terminating glfw

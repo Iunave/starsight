@@ -1,0 +1,8 @@
+//
+// Created by user on 10/30/23.
+//
+
+#ifndef STARSIGHT_VK_DESCRIPTOR_HPP
+#define STARSIGHT_VK_DESCRIPTOR_HPP
+
+#endif //STARSIGHT_VK_DESCRIPTOR_HPP

@@ -1,0 +1,40 @@
+[17:30:07.226] [main] [log.cpp:38] [INFO] - created logger
+[17:30:07.226] [main] [log.cpp:39] [INFO] - logging to "/home/user/Programs/starsight/saved/logs/log_20231030_173007.txt"
+[17:30:07.226] [main] [window.cpp:37] [INFO] - initializing glfw
+[17:30:07.264] [main] [window.cpp:12] [INFO] - creating window starsight
+[17:30:07.296] [main] [vk_context.cpp:297] [INFO] - creating vulkan context
+[17:30:07.296] [main] [vk_context.cpp:348] [INFO] - creating instance
+[17:30:07.296] [main] [vk_context.cpp:363] [INFO] - using validation layer VK_LAYER_KHRONOS_validation
+[17:30:07.296] [main] [vk_context.cpp:368] [INFO] - using instance extension VK_KHR_surface
+[17:30:07.296] [main] [vk_context.cpp:368] [INFO] - using instance extension VK_KHR_xcb_surface
+[17:30:07.296] [main] [vk_context.cpp:368] [INFO] - using instance extension VK_EXT_debug_utils
+[17:30:07.296] [main] [vk_context.cpp:56] [WARNING] - Severity: Warning | Type: { General } | messageIdNumber: 0 | MessageIdName: Loader Message
+Message: Override layer has override paths set to /usr/share/vulkan/explicit_layer.d
+Objects: (1)
+Object[0] = Type: Instance | Handle: 94844354961152 | Name: ?
+Command Buffer Labels: (0)
+Queue Labels: (0)
+
+[17:30:07.337] [main] [vk_context.cpp:56] [WARNING] - Severity: Warning | Type: { Validation } | messageIdNumber: -2111305990 | MessageIdName: UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging
+Message: Validation Warning: [ UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging ] | MessageID = 0x822806fa | vkCreateInstance():  Attempting to enable extension VK_EXT_debug_utils, but this extension is intended to support use by applications when debugging and it is strongly recommended that it be otherwise avoided.
+Objects: (0)
+Command Buffer Labels: (0)
+Queue Labels: (0)
+
+[17:30:07.365] [main] [vk_context.cpp:391] [INFO] - creating debug messenger
+[17:30:07.365] [main] [vk_context.cpp:405] [INFO] - picking physical device
+[17:30:07.367] [main] [vk_context.cpp:411] [INFO] - checking AMD Radeon RX 5700 XT (RADV NAVI10)
+[17:30:07.367] [main] [vk_context.cpp:452] [INFO] - creating logical device
+[17:30:07.367] [main] [vk_context.cpp:481] [INFO] - using device extension VK_KHR_swapchain
+[17:30:07.367] [main] [vk_context.cpp:481] [INFO] - using device extension VK_EXT_conditional_rendering
+[17:30:07.384] [main] [vk_context.cpp:519] [INFO] - creating vulkan memory allocator
+[17:30:07.384] [main] [vk_context.cpp:558] [INFO] - creating command pool
+[17:30:07.384] [main] [vk_context.cpp:56] [WARNING] - Severity: Warning | Type: { Performance } | messageIdNumber: -2027362524 | MessageIdName: UNASSIGNED-BestPractices-vkCreateCommandPool-command-buffer-reset
+Message: Validation Performance Warning: [ UNASSIGNED-BestPractices-vkCreateCommandPool-command-buffer-reset ] | MessageID = 0x8728e724 | vkCreateCommandPool():  VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT is set. Consider resetting entire pool instead.
+Objects: (0)
+Command Buffer Labels: (0)
+Queue Labels: (0)
+
+[17:30:07.384] [main] [vk_context.cpp:537] [INFO] - initializing caches
+[17:30:10.671] [main] [window.cpp:23] [INFO] - closing window starsight
+[17:30:10.671] [main] [window.cpp:31] [INFO] - terminating glfw
