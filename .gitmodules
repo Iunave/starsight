@@ -1,3 +1,27 @@
 [submodule "third_party/slotmap"]
 	path = third_party/slotmap
 	url = https://github.com/Iunave/slotmap.git
+[submodule "third_party/glfw"]
+	path = third_party/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "third_party/libassert"]
+	path = third_party/libassert
+	url = https://github.com/jeremy-rifkin/libassert.git
+[submodule "third_party/fmt"]
+	path = third_party/fmt
+	url = https://github.com/fmtlib/fmt.git
+[submodule "third_party/quill"]
+	path = third_party/quill
+	url = https://github.com/odygrd/quill.git
+[submodule "third_party/glm"]
+	path = third_party/glm
+	url = https://github.com/g-truc/glm.git
+[submodule "third_party/VulkanMemoryAllocator"]
+	path = third_party/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "third_party/VulkanMemoryAllocator-Hpp"]
+	path = third_party/VulkanMemoryAllocator-Hpp
+	url = https://github.com/YaaZ/VulkanMemoryAllocator-Hpp.git
+[submodule "third_party/SPIRV-Reflect"]
+	path = third_party/SPIRV-Reflect
+	url = https://github.com/KhronosGroup/SPIRV-Reflect.git
