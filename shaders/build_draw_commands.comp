@@ -1,0 +1,127 @@
+#version 460
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_EXT_shader_explicit_arithmetic_types : require
+#include "utility.glsl"
+
+struct VkDrawIndexedIndirectCommand
+{
+    uint32_t    indexCount;
+    uint32_t    instanceCount;
+    uint32_t    firstIndex;
+    int32_t     vertexOffset;
+    uint32_t    firstInstance;
+};
+
+struct Transform
+{
+    vec3 translation;
+    vec3 translation_err;
+    vec4 rotation;
+    vec3 scale;
+};
+
+struct Mesh
+{
+    uint32_t indexCount;
+    uint32_t vertexCount;
+    uint32_t indexBufferOffset;
+    uint32_t positionBufferOffset;
+    uint32_t normalUVBufferOffset;
+    uint32_t baseColorIndex;
+};
+
+layout(std430, buffer_reference, buffer_reference_align = 256) readonly buffer CameraBuffer
+{
+    mat4x4 view;
+    mat4x4 projection;
+    mat4x4 viewProjection;
+    vec3 location;
+    vec3 location_err;
+    vec4 frustum;
+    float near;
+    float far;
+    float pad3[2];
+};
+
+layout(scalar, buffer_reference, buffer_reference_align = 4) buffer DrawIndirectCount
+{
+    uint32_t count;
+};
+
+layout(scalar, buffer_reference, buffer_reference_align = 4) writeonly buffer DrawIndirectCommands
+{
+    VkDrawIndexedIndirectCommand commands[];
+};
+
+layout(std430, buffer_reference, buffer_reference_align = 16) readonly buffer MeshSphereBounds
+{
+    vec4 bounds[];
+};
+
+layout(scalar, buffer_reference, buffer_reference_align = 4) readonly buffer MeshBuffer
+{
+    Mesh meshes[];
+};
+
+layout(scalar, buffer_reference, buffer_reference_align = 4) readonly buffer TransformBuffer
+{
+    Transform transforms[];
+};
+
+layout(scalar, push_constant) uniform PC
+{
+    CameraBuffer pCamera;
+    DrawIndirectCount pDrawIndirectCount;
+    MeshSphereBounds pMeshBounds;
+    MeshBuffer pMeshes;
+    TransformBuffer pTransforms;
+    uint32_t meshCount;
+};
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+void main()
+{
+    if(gl_GlobalInvocationID.x >= meshCount)
+    {
+        return;
+    }
+
+    Transform transform = pTransforms.transforms[gl_GlobalInvocationID.x];
+    vec4 sphereBounds = pMeshBounds.bounds[gl_GlobalInvocationID.x];
+
+    vec3 center = sphereBounds.xyz;
+    float radius = sphereBounds.w;
+
+    center += (transform.translation - pCamera.location) - (transform.translation_err - pCamera.location_err);
+    center = (pCamera.view * vec4(center, 0.0)).xyz;
+    radius *= max(transform.scale.x, max(transform.scale.y, transform.scale.z));
+
+    bool visible = true;
+
+    //cull by far and near plane
+    visible = visible && (center.z + radius >= pCamera.near);
+    visible = visible && (center.z - radius <= pCamera.far);
+
+    //cull by left/top/right/bottom
+    visible = visible && ((center.z * pCamera.frustum[1] - abs(center.x) * pCamera.frustum[0]) > -radius);
+    visible = visible && ((center.z * pCamera.frustum[3] - abs(center.y) * pCamera.frustum[2]) > -radius);
+
+    if(visible)
+    {
+        uint32_t commandIndex = atomicAdd(pDrawIndirectCount.count, 1);
+
+        Mesh mesh = pMeshes.meshes[gl_GlobalInvocationID.x];
+
+        DrawIndirectCommands pDrawIndirectCommands = DrawIndirectCommands(uint64_t(pDrawIndirectCount) + 4);
+        pDrawIndirectCommands.commands[commandIndex].indexCount = mesh.indexCount;
+        pDrawIndirectCommands.commands[commandIndex].instanceCount = 1;
+        pDrawIndirectCommands.commands[commandIndex].firstIndex = mesh.indexBufferOffset / 4u;
+        pDrawIndirectCommands.commands[commandIndex].vertexOffset = 0;
+        pDrawIndirectCommands.commands[commandIndex].firstInstance = gl_GlobalInvocationID.x;
+    }
+}

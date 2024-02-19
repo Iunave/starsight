@@ -1,0 +1,51 @@
+#version 460
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_EXT_nonuniform_qualifier : require
+#extension GL_EXT_shader_16bit_storage : require
+#extension GL_EXT_shader_explicit_arithmetic_types : require
+#include "utility.glsl"
+
+layout(set = 0, binding = 0) uniform sampler2D normalImage;
+layout(set = 0, binding = 1) uniform sampler2D baseColorImage;
+layout(set = 0, binding = 2) uniform writeonly restrict image2D outColorImage;
+
+layout(scalar, push_constant) uniform PC
+{
+    vec3 lightDirection;
+    vec3 lightColor;
+    float lightStrength;
+};
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+void main()
+{
+    ivec2 imageSizePX = imageSize(outColorImage);
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+
+    if(pixel.x >= imageSizePX.x || pixel.y >= imageSizePX.y)
+    {
+        return;
+    }
+
+    vec3 vsNormal = octDecode(texture(normalImage, pixel).xy);
+
+    float lightHit = dot(vsNormal, -lightDirection);
+    float lightContribution = lightHit * lightStrength;
+
+    vec3 pixelColor;
+    if(lightContribution >= 0.01)
+    {
+        pixelColor = texture(baseColorImage, pixel).xyz;
+    }
+    else
+    {
+        pixelColor = vec3(0, 0, 0);
+    }
+
+    vec4 litColor = vec4(pixelColor * lightColor * lightContribution, 0.0);
+
+    imageStore(outColorImage, pixel, litColor);
+}
