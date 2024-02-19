@@ -16,13 +16,18 @@ public:
 
     vk::Result Value = vk::Result::eSuccess;
 };
-inline constinit thread_local result_checker_t resultcheck{};
+inline constinit thread_local result_checker_t vkResultCheck{};
 
 struct VAllocatedBuffer
 {
     vk::Buffer Buffer = nullptr;
     vma::Allocation Allocation = nullptr;
-    vma::AllocationInfo Info{};
+    vk::DeviceAddress BufferAddress = 0;
+    void* MappedData = nullptr;
+    uint64_t Size = 0;
+    vk::BufferUsageFlags BufferUsage = {};
+    vma::AllocationCreateFlags AllocationFlags = {};
+    vma::MemoryUsage MemoryUsage = {};
 };
 
 struct VAllocatedImage
@@ -33,12 +38,10 @@ struct VAllocatedImage
     vma::AllocationInfo Info{};
 };
 
-struct VAllocatedTexture
+struct BufferAllocationSlot
 {
-    vk::Image Image = nullptr;
-    vma::Allocation Allocation = nullptr;
-    vma::AllocationInfo Info{};
-    uint64_t MipMaps = 0;
+    uint32_t Offset;
+    uint32_t Size;
 };
 
 namespace vkutil
@@ -57,7 +60,7 @@ namespace vkutil
     vk::ImageSubresourceLayers flat_subresource_layers(vk::ImageAspectFlagBits aspect);
     vk::ImageSubresourceRange flat_subresource_range(vk::ImageAspectFlagBits aspect);
 
-    uint32_t groupcount(uint32_t total_size, uint32_t local_size);
+    uint32_t GroupCount(uint32_t total_size, uint32_t local_size);
 }
 
 #endif //STARSIGHT_VK_UTILITY_HPP

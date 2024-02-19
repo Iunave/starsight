@@ -12,7 +12,7 @@ static quill::Logger* CreateDefaultLogger()
 
     quill::start(true);
 
-    std::string LogPattern = "[%(ascii_time)] [%(thread_name)] [%(filename):%(lineno)] [%(level_name)] - %(message)";
+    std::string LogPattern = "[%(ascii_time)] [%(thread) - %(thread_name)] [%(filename):%(lineno)] [%(level_name)] - %(message)";
     std::string TimeFormat = "%H:%M:%S.%Qms";
 
     quill::FileHandlerConfig FileConfig{};
@@ -26,7 +26,7 @@ static quill::Logger* CreateDefaultLogger()
         return libassert::utility::strip_colors(std::string{Message});
     };
 
-    std::string LogFile = ProjectRelativePath("saved/logs/log.txt");
+    std::string LogFile = ProjectAbsolutePath("saved/logs/log.txt");
 
     std::shared_ptr<quill::Handler> file_handler = quill::file_handler(LogFile, FileConfig, FileEvent);
 
@@ -34,6 +34,7 @@ static quill::Logger* CreateDefaultLogger()
     stdout_handler->set_pattern(LogPattern, TimeFormat);
 
     quill::Logger* Logger = quill::create_logger("default logger", {stdout_handler, file_handler});
+    Logger->set_log_level(quill::LogLevel::TraceL3);
 
     QUILL_LOG_INFO(Logger, "created logger");
     QUILL_LOG_INFO(Logger, "logging to {}", dynamic_cast<quill::FileHandler*>(file_handler.get())->filename());

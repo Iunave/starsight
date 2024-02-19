@@ -7,6 +7,11 @@
 
 #include <string>
 
+namespace global
+{
+    inline constinit GLFWwindow* Window = nullptr;
+}
+
 struct GlfwWindowUserData
 {
     std::string WindowName{};

@@ -57,7 +57,7 @@ static vk::Bool32 VulkanDebugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT s
             break;
         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
             LOG_ERROR("{}", Message);
-            throw vk::ValidationFailedEXTError{"validation failure"};
+            abort();
     }
 
     return false;
@@ -291,32 +291,16 @@ static VQueueIndices GetDeviceQueues(vk::PhysicalDevice PhysicalDevice)
     return Queues;
 }
 
-VContext::VContext()
+VContext::VContext(const BaseInitializer& Initializer)
 {
     LOG_INFO("creating vulkan context");
 
-    ASSERT(vkContext == nullptr);
-    vkContext = this;
-
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 
-    InstanceExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
-    InstanceExtensions.emplace_back("VK_KHR_xcb_surface");
-
-    DeviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-    DeviceExtensions.emplace_back(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
-
-#ifndef NDEBUG
-    ValidationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
-    InstanceExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
-
-    PhysicalDeviceFeatures.features2.features.samplerAnisotropy = true;
-    PhysicalDeviceFeatures.vk12features.timelineSemaphore = true;
-    PhysicalDeviceFeatures.vk12features.scalarBlockLayout = true;
-    PhysicalDeviceFeatures.vk13features.synchronization2 = true;
-    PhysicalDeviceFeatures.vk13features.dynamicRendering = true;
-    PhysicalDeviceFeatures.vk13features.maintenance4 = true;
+    ValidationLayers = Initializer.ValidationLayers;
+    InstanceExtensions = Initializer.InstanceExtensions;
+    DeviceExtensions = Initializer.DeviceExtensions;
+    PhysicalDeviceFeatures = Initializer.PhysicalDeviceFeatures;
 
     CreateInstance();
     CreateDebugMessenger();
@@ -324,22 +308,28 @@ VContext::VContext()
     CreateLogicalDevice();
     CreateMemoryAllocator();
     CreateCommandPool();
-    CreateCaches();
+    CreateShaderDescriptorTable();
+    CreateTransientDescriptorPool();
+    AllocateGlobalIndexAndVertexBuffer();
+
+    DescriptorAllocator.emplace(this);
+    DestructionQueue.emplace_back([this]{DescriptorAllocator.reset();});
+
+    DescriptorLayoutCache.emplace(this);
+    DestructionQueue.emplace_back([this]{DescriptorLayoutCache.reset();});
+
+    PipelineLayoutCache.emplace(this);
+    DestructionQueue.emplace_back([this]{PipelineLayoutCache.reset();});
+
+    ShaderModuleCache.emplace(this);
+    DestructionQueue.emplace_back([this]{ShaderModuleCache.reset();});
+
+    ModelManager.emplace(this);
+    DestructionQueue.emplace_back([this]{ModelManager.reset();});
 }
 
 VContext::~VContext()
 {
-    LOG_INFO("destroying vulkan context");
-
-    if(Device)
-    {
-        Device.waitIdle();
-    }
-
-    for(auto it = DestructionQueue.rbegin(); it != DestructionQueue.rend(); ++it)
-    {
-        (*it)();
-    }
 }
 
 void VContext::CreateInstance()
@@ -347,7 +337,7 @@ void VContext::CreateInstance()
     LOG_INFO("creating instance");
 
     vk::ApplicationInfo app_info{};
-    app_info.pApplicationName = "rendered background";
+    app_info.pApplicationName = "StarSight";
     app_info.pEngineName = "none";
     app_info.applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
     app_info.apiVersion = VK_API_VERSION_1_3;
@@ -376,10 +366,9 @@ void VContext::CreateInstance()
 
     Instance = vk::createInstance(instance_info, nullptr);
 
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      Instance.destroy();
-                                  });
+    DestructionQueue.emplace_back([this](){
+        Instance.destroy();
+    });
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Instance);
 }
@@ -392,10 +381,9 @@ void VContext::CreateDebugMessenger()
     vk::DebugUtilsMessengerCreateInfoEXT messenger_info = MakeMessengerCreateInfo();
     DebugMessenger = Instance.createDebugUtilsMessengerEXT(messenger_info);
 
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      Instance.destroyDebugUtilsMessengerEXT(DebugMessenger);
-                                  });
+    DestructionQueue.emplace_back([this](){
+        Instance.destroyDebugUtilsMessengerEXT(DebugMessenger);
+    });
 #endif
 }
 
@@ -495,10 +483,9 @@ duplicate:;
 
     NameObject(Device, "logical device");
 
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      Device.destroy();
-                                  });
+    DestructionQueue.emplace_back([this](){
+        Device.destroy();
+    });
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(Device);
 
@@ -518,6 +505,7 @@ void VContext::CreateMemoryAllocator()
     LOG_INFO("creating vulkan memory allocator");
 
     auto allocator_info = vma::AllocatorCreateInfo{}
+            .setFlags(vma::AllocatorCreateFlagBits::eBufferDeviceAddress)
             .setVulkanApiVersion(VK_API_VERSION_1_3)
             .setInstance(Instance)
             .setPhysicalDevice(PhysicalDevice)
@@ -525,31 +513,9 @@ void VContext::CreateMemoryAllocator()
 
     Allocator = vma::createAllocator(allocator_info);
 
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      Allocator.destroy();
-                                  });
-}
-
-void VContext::CreateCaches()
-{
-    LOG_INFO("initializing caches");
-/*
-    DescriptorAllocator.Connect(Device);
-    DescriptorLayoutCache.Connect(Device);
-    PipelineLayoutCache.Connect(Device);
-    ShaderModuleCache.Connect(Device);
-    TransferManager.Initialize();
-
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      TransferManager.Destroy();
-                                      DescriptorAllocator.shutdown();
-                                      DescriptorLayoutCache.shutdown();
-                                      PipelineLayoutCache.shutdown();
-                                      ShaderModuleCache.Destroy();
-                                  });
-    */
+    DestructionQueue.emplace_back([this](){
+        Allocator.destroy();
+    });
 }
 
 void VContext::CreateCommandPool()
@@ -561,66 +527,37 @@ void VContext::CreateCommandPool()
             .setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 
     GraphicsCommandPool = Device.createCommandPool(GraphicsPoolInfo);
-
     NameObject(GraphicsCommandPool, "graphics command pool");
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      Device.destroyCommandPool(GraphicsCommandPool);
-                                  });
+
+    DestructionQueue.emplace_back([this]{
+        Device.destroyCommandPool(GraphicsCommandPool);
+    });
 
     auto TransferPoolInfo = vk::CommandPoolCreateInfo{}
             .setQueueFamilyIndex(QueueIndices.Transfer)
             .setFlags(vk::CommandPoolCreateFlagBits::eTransient);
 
     TransferCommandPool = Device.createCommandPool(TransferPoolInfo);
-
     NameObject(TransferCommandPool, "transfer command pool");
-    DestructionQueue.emplace_back([this]()
-                                  {
-                                      Device.destroyCommandPool(TransferCommandPool);
-                                  });
+
+    DestructionQueue.emplace_back([this]{
+        Device.destroyCommandPool(TransferCommandPool);
+    });
 }
-/*
+
 VGraphicsPipelineBuilder VContext::MakeGraphicsPipelineBuilder()
 {
-    return VGraphicsPipelineBuilder{&DescriptorLayoutCache, &PipelineLayoutCache, &ShaderModuleCache};
+    return VGraphicsPipelineBuilder{&DescriptorLayoutCache.value(), &PipelineLayoutCache.value(), &ShaderModuleCache.value()};
+}
+
+VComputePipelineBuilder VContext::MakeComputePipelineBuilder()
+{
+    return VComputePipelineBuilder{&DescriptorLayoutCache.value(), &PipelineLayoutCache.value(), &ShaderModuleCache.value()};
 }
 
 VDescriptorBuilder VContext::MakeDescriptorBuilder()
 {
-    return VDescriptorBuilder{&DescriptorAllocator, &DescriptorLayoutCache};
-}
-*/
-VAllocatedBuffer VContext::AllocateStagingBuffer(uint64_t Size)
-{
-    auto BufferCreatInfo = vk::BufferCreateInfo{}
-            .setSize(Size)
-            .setUsage(vk::BufferUsageFlagBits::eTransferSrc);
-
-    auto AllocationCreateInfo = vma::AllocationCreateInfo{}
-            .setFlags(vma::AllocationCreateFlagBits::eHostAccessRandom | vma::AllocationCreateFlagBits::eMapped | vma::AllocationCreateFlagBits::eStrategyMinTime)
-            .setUsage(vma::MemoryUsage::eAutoPreferHost);
-
-    VAllocatedBuffer Buffer{};
-    resultcheck = Allocator.createBuffer(&BufferCreatInfo, &AllocationCreateInfo, &Buffer.Buffer, &Buffer.Allocation, &Buffer.Info);
-
-    return Buffer;
-}
-
-VAllocatedBuffer VContext::AllocateVertexBuffer(uint64_t Size)
-{
-    auto BufferCreatInfo = vk::BufferCreateInfo{}
-            .setSize(Size)
-            .setUsage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst);
-
-    auto AllocationCreateInfo = vma::AllocationCreateInfo{}
-            .setFlags(vma::AllocationCreateFlagBits::eStrategyMinMemory)
-            .setUsage(vma::MemoryUsage::eAutoPreferDevice);
-
-    VAllocatedBuffer Buffer{};
-    resultcheck = Allocator.createBuffer(&BufferCreatInfo, &AllocationCreateInfo, &Buffer.Buffer, &Buffer.Allocation, &Buffer.Info);
-
-    return Buffer;
+    return VDescriptorBuilder{&DescriptorAllocator.value(), &DescriptorLayoutCache.value()};
 }
 
 vk::CommandBuffer VContext::RequestTransferCommandBuffer(std::string Description)
@@ -633,7 +570,7 @@ vk::CommandBuffer VContext::RequestTransferCommandBuffer(std::string Description
             .setCommandBufferCount(1);
 
     vk::CommandBuffer CommandBuffer = nullptr;
-    resultcheck = Device.allocateCommandBuffers(&CommandBufferAllocateInfo, &CommandBuffer);
+    vkResultCheck = Device.allocateCommandBuffers(&CommandBufferAllocateInfo, &CommandBuffer);
 
     NameObject(CommandBuffer, Description);
     vkutil::push_label(QueueHandles.Transfer, Description);
@@ -673,7 +610,7 @@ vk::Format VContext::PickImageFormat(vk::FormatFeatureFlags feature_flags, std::
         }
     }
 
-    VERIFY(false, "no viable image format found");
+    VERIFY(false, "no viable image format found"); return {};
 }
 
 vk::Format VContext::PickBufferFormat(vk::FormatFeatureFlags feature_flags, std::span<vk::Format> candidates) const
@@ -688,10 +625,10 @@ vk::Format VContext::PickBufferFormat(vk::FormatFeatureFlags feature_flags, std:
         }
     }
 
-    VERIFY(false, "no viable buffer format found");
+    VERIFY(false, "no viable buffer format found"); return {};
 }
 
-void VContext::NameObject(uint64_t Handle, vk::ObjectType Type, std::string Name)
+void VContext::NameObject(uint64_t Handle, vk::ObjectType Type, const std::string& Name)
 {
 #ifndef NDEBUG
     vk::DebugUtilsObjectNameInfoEXT info{};
@@ -701,4 +638,335 @@ void VContext::NameObject(uint64_t Handle, vk::ObjectType Type, std::string Name
 
     Device.setDebugUtilsObjectNameEXT(info);
 #endif
+}
+
+uint64_t VContext::PadUniformSize(uint64_t Size) const
+{
+    return math::PadSize2Alignment(Size, PhysicalDeviceProperties.properties.limits.minUniformBufferOffsetAlignment);
+}
+
+void VContext::CreateShaderDescriptorTable()
+{
+    LOG_INFO("creating shader resource descriptor pools");
+
+    const vk::PhysicalDeviceLimits& Limits = PhysicalDeviceProperties.properties.limits;
+
+    std::array<vk::DescriptorPoolSize, 1> PoolSizes{
+        vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, Limits.maxPerStageDescriptorSampledImages},
+    };
+
+    auto DescriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo{}
+            .setFlags(vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind)
+            .setPoolSizes(PoolSizes)
+            .setMaxSets(1);
+
+    vkResultCheck = Device.createDescriptorPool(&DescriptorPoolCreateInfo, nullptr, &ShaderResourcePool);
+    NameObject(ShaderResourcePool, "ShaderResourcePool");
+
+    DestructionQueue.emplace_back([&]{
+        Device.destroyDescriptorPool(ShaderResourcePool);
+    });
+
+    std::array<vk::DescriptorSetLayoutBinding, PoolSizes.size()> LayoutBindings{};
+    std::array<vk::DescriptorBindingFlags , PoolSizes.size()> LayoutFlags{};
+
+    for(uint64_t Binding = 0; Binding < PoolSizes.size(); ++Binding)
+    {
+        DescriptorSetFreeLists[Binding].PoolSize = PoolSizes[Binding];
+
+        LayoutBindings[Binding]
+                .setBinding(Binding)
+                .setDescriptorCount(PoolSizes[Binding].descriptorCount)
+                .setDescriptorType(PoolSizes[Binding].type)
+                .setStageFlags(vk::ShaderStageFlagBits::eFragment);
+
+        LayoutFlags[Binding] = vk::DescriptorBindingFlagBits::ePartiallyBound | vk::DescriptorBindingFlagBits::eUpdateAfterBind;
+    }
+
+    auto BindingFlags = vk::DescriptorSetLayoutBindingFlagsCreateInfo{}
+            .setBindingFlags(LayoutFlags);
+
+    auto DescriptorSetLayoutInfo = vk::DescriptorSetLayoutCreateInfo{}
+            .setPNext(&BindingFlags)
+            .setFlags(vk::DescriptorSetLayoutCreateFlagBits::eUpdateAfterBindPool)
+            .setBindings(LayoutBindings);
+
+    vkResultCheck = Device.createDescriptorSetLayout(&DescriptorSetLayoutInfo, nullptr, &ShaderResourceLayout);
+    NameObject(ShaderResourceLayout, "ShaderResourceLayout");
+
+    DestructionQueue.emplace_back([&]{
+        Device.destroyDescriptorSetLayout(ShaderResourceLayout);
+    });
+
+    auto DescriptorSetAllocateInfo = vk::DescriptorSetAllocateInfo{}
+            .setDescriptorPool(ShaderResourcePool)
+            .setSetLayouts(ShaderResourceLayout)
+            .setDescriptorSetCount(1);
+
+    vkResultCheck = Device.allocateDescriptorSets(&DescriptorSetAllocateInfo, &ShaderResourceSet);
+    NameObject(ShaderResourceSet, "ShaderResourceSet");
+}
+
+uint32_t VContext::GrabDescriptorSlot(vk::DescriptorType Type)
+{
+    DescriptorSetFreeList* List = FindFreeList(Type);
+    std::lock_guard Lock{List->ListMX};
+
+    if(!List->FreeList.empty())
+    {
+        uint32_t Slot = List->FreeList.front();
+        List->FreeList.pop_front();
+        return Slot;
+    }
+    else
+    {
+        ASSERT(List->LastSlot < List->PoolSize.descriptorCount);
+
+        List->LastSlot += 1;
+        return List->LastSlot;
+    }
+}
+
+void VContext::FreeDescriptorSlot(vk::DescriptorType Type, uint32_t Slot)
+{
+    DescriptorSetFreeList* List = FindFreeList(Type);
+
+    List->ListMX.lock();
+    List->FreeList.push_back(Slot);
+    List->ListMX.unlock();
+}
+
+DescriptorSetFreeList* VContext::FindFreeList(vk::DescriptorType Type)
+{
+    for(DescriptorSetFreeList& FreeList : DescriptorSetFreeLists)
+    {
+        if(FreeList.PoolSize.type == Type)
+        {
+            return &FreeList;
+        }
+    }
+
+    ASSERT(false);
+    return nullptr;
+}
+
+vk::DeviceSize VContext::GetBufferAddress(vk::Buffer Buffer) const
+{
+    return Device.getBufferAddress(vk::BufferDeviceAddressInfo{}.setBuffer(Buffer));
+}
+
+VAllocatedBuffer VContext::AllocateBuffer(uint64_t Size, vk::BufferUsageFlags BufferUsage, vma::AllocationCreateFlags AllocationFlags, vma::MemoryUsage MemoryUsage, const std::string& BufferAllocationName)
+{
+    auto BufferCreateInfo = vk::BufferCreateInfo{}
+            .setSize(Size)
+            .setUsage(BufferUsage)
+            .setSharingMode(vk::SharingMode::eExclusive);
+
+    auto AllocationCreateInfo = vma::AllocationCreateInfo{}
+            .setFlags(AllocationFlags)
+            .setUsage(MemoryUsage);
+
+    VAllocatedBuffer Result{};
+    Result.Size = Size;
+    Result.BufferUsage = BufferUsage;
+    Result.AllocationFlags = AllocationFlags;
+    Result.MemoryUsage = MemoryUsage;
+
+    vma::AllocationInfo AllocationInfo{};
+    if(BufferUsage & vk::BufferUsageFlagBits::eUniformBuffer)
+    {
+        vkResultCheck = Allocator.createBufferWithAlignment(&BufferCreateInfo, &AllocationCreateInfo, UNIFORM_BUFFER_ALIGNMENT, &Result.Buffer, &Result.Allocation, &AllocationInfo);
+    }
+    else
+    {
+        vkResultCheck = Allocator.createBuffer(&BufferCreateInfo, &AllocationCreateInfo, &Result.Buffer, &Result.Allocation, &AllocationInfo);
+    }
+
+    if(BufferUsage & vk::BufferUsageFlagBits::eShaderDeviceAddress)
+    {
+        Result.BufferAddress = Device.getBufferAddress(vk::BufferDeviceAddressInfo{}.setBuffer(Result.Buffer));
+    }
+
+    if(AllocationFlags & vma::AllocationCreateFlagBits::eMapped)
+    {
+        Result.MappedData = AllocationInfo.pMappedData;
+    }
+
+    if(!BufferAllocationName.empty())
+    {
+        NameObject(Result.Buffer, BufferAllocationName);
+        Allocator.setAllocationName(Result.Allocation, BufferAllocationName.c_str());
+    }
+
+    return Result;
+}
+
+void VContext::ReallocateBuffer(VAllocatedBuffer* Buffer, uint64_t NewSize)
+{
+    vma::AllocationInfo AllocationInfo = Allocator.getAllocationInfo(Buffer->Allocation);
+    std::string OldName = AllocationInfo.pName;
+
+    VAllocatedBuffer NewBuffer{};
+    if(NewSize != 0)
+    {
+        NewBuffer = AllocateBuffer(NewSize, Buffer->BufferUsage, Buffer->AllocationFlags, Buffer->MemoryUsage, OldName);
+    }
+
+    FreeBuffer(Buffer);
+    *Buffer = NewBuffer;
+}
+
+void VContext::FreeBuffer(VAllocatedBuffer* Buffer)
+{
+    auto Destruction = [Allocator = this->Allocator, Buffer = Buffer->Buffer, Allocation = Buffer->Allocation](){
+        Allocator.destroyBuffer(Buffer, Allocation);
+    };
+
+    DeferredDestructionQueue.enqueue(Destruction);
+
+    memset(Buffer, 0, sizeof(VAllocatedBuffer));
+}
+
+void VContext::AllocateGlobalIndexAndVertexBuffer()
+{
+    LOG_INFO("allocating global index and vertex buffer");
+
+    GlobalIndexBuffer = AllocateBuffer(100000000, //1 gigabyte
+                   vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+                   vma::AllocationCreateFlagBits::eDedicatedMemory | vma::AllocationCreateFlagBits::eStrategyBestFit,
+                    vma::MemoryUsage::eAutoPreferDevice,
+                    "Global Index Buffer");
+
+    DestructionQueue.emplace_back([this]{
+        ASSERT(IndexBufferAllocationList.size() == 2, ASSERTION::NONFATAL);
+        Allocator.destroyBuffer(GlobalIndexBuffer.Buffer, GlobalIndexBuffer.Allocation);
+    });
+
+    IndexBufferAllocationList.emplace_back(BufferAllocationSlot{
+        .Offset = 0,
+        .Size = 0
+    });
+
+    IndexBufferAllocationList.emplace_back(BufferAllocationSlot{
+        .Offset = static_cast<uint32_t>(GlobalIndexBuffer.Size),
+        .Size = 0
+    });
+
+    GlobalVertexBuffer = AllocateBuffer(100000000, //1 gigabyte
+                   vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eShaderDeviceAddress,
+                   vma::AllocationCreateFlagBits::eDedicatedMemory | vma::AllocationCreateFlagBits::eStrategyBestFit,
+                   vma::MemoryUsage::eAutoPreferDevice,
+                   "Global Vertex Buffer");
+
+    DestructionQueue.emplace_back([this]{
+        ASSERT(VertexBufferAllocationList.size() == 2, ASSERTION::NONFATAL);
+        Allocator.destroyBuffer(GlobalVertexBuffer.Buffer, GlobalVertexBuffer.Allocation);
+    });
+
+    VertexBufferAllocationList.emplace_back(BufferAllocationSlot{
+            .Offset = 0,
+            .Size = 0
+    });
+
+    VertexBufferAllocationList.emplace_back(BufferAllocationSlot{
+            .Offset = static_cast<uint32_t>(GlobalVertexBuffer.Size),
+            .Size = 0
+    });
+}
+
+BufferAllocationSlot VContext::GrabIndexBufferMemory(uint32_t Size, uint32_t Alignment)
+{
+    std::lock_guard Guard{IndexBufferMx};
+
+    for(auto it = IndexBufferAllocationList.begin(); it != IndexBufferAllocationList.end() - 1; ++it)
+    {
+        int64_t Begin = math::PadSize2Alignment(it->Offset + it->Size, Alignment);
+        int64_t End = it[1].Offset;
+
+        if((End - Begin) >= int64_t(Size))
+        {
+            BufferAllocationSlot NewSlot{.Offset = uint32_t(Begin), .Size = Size};
+            IndexBufferAllocationList.insert(it + 1, NewSlot);
+            return NewSlot;
+        }
+    }
+
+    VERIFY(false, "failed to get index buffer memory", Size, Alignment);
+    return {};
+}
+
+void VContext::FreeIndexBufferMemory(BufferAllocationSlot Slot)
+{
+    std::lock_guard Guard{IndexBufferMx};
+
+    for(auto it = IndexBufferAllocationList.begin() + 1; it != IndexBufferAllocationList.end() - 1; ++it)
+    {
+        if(Slot.Offset == it->Offset)
+        {
+            IndexBufferAllocationList.erase(it);
+            return;
+        }
+    }
+
+    VERIFY(false, "failed to free index buffer memory", Slot);
+}
+
+BufferAllocationSlot VContext::GrabVertexBufferMemory(uint32_t Size, uint32_t Alignment)
+{
+    std::lock_guard Guard{VertexBufferMx};
+
+    for(auto it = VertexBufferAllocationList.begin(); it != VertexBufferAllocationList.end() - 1; ++it)
+    {
+        int64_t Begin = math::PadSize2Alignment(it->Offset + it->Size, Alignment);
+        int64_t End = it[1].Offset;
+
+        if((End - Begin) >= int64_t(Size))
+        {
+            BufferAllocationSlot NewSlot{.Offset = uint32_t(Begin), .Size = Size};
+            VertexBufferAllocationList.insert(it + 1, NewSlot);
+            return NewSlot;
+        }
+    }
+
+    VERIFY(false, "failed to get vertex buffer memory", Size, Alignment);
+    return {};
+}
+
+void VContext::FreeVertexBufferMemory(BufferAllocationSlot Slot)
+{
+    std::lock_guard Guard{VertexBufferMx};
+
+    for(auto it = VertexBufferAllocationList.begin() + 1; it != VertexBufferAllocationList.end() - 1; ++it)
+    {
+        if(Slot.Offset == it->Offset)
+        {
+            VertexBufferAllocationList.erase(it);
+            return;
+        }
+    }
+
+    VERIFY(false, "failed to free vertex buffer memory", Slot);
+}
+
+void VContext::CreateTransientDescriptorPool()
+{
+    LOG_INFO("creating transient descriptor pool");
+
+    constexpr std::array PoolSizes
+    {
+        vk::DescriptorPoolSize{vk::DescriptorType::eCombinedImageSampler, 1000},
+        vk::DescriptorPoolSize{vk::DescriptorType::eSampledImage, 1000}
+    };
+
+    auto PoolInfo = vk::DescriptorPoolCreateInfo{}
+    .setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+    .setMaxSets(128)
+    .setPoolSizes(PoolSizes);
+
+    TransientDescriptorPool = Device.createDescriptorPool(PoolInfo);
+    NameObject(TransientDescriptorPool, "TransientDescriptorPool");
+
+    DestructionQueue.emplace_back([this](){
+        Device.destroyDescriptorPool(TransientDescriptorPool);
+    });
 }

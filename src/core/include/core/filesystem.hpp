@@ -1,15 +1,19 @@
 #ifndef STARSIGHT_FILESYSTEM_HPP
 #define STARSIGHT_FILESYSTEM_HPP
 
-#ifndef STARSIGHT_DIRECTORY
-#error "STARSIGHT_DIRECTORY must be defined to the top level directory"
-#endif
+#include <filesystem>
+#include <future>
+#include <vector>
 
-#include <string>
-
-inline std::string ProjectRelativePath(const std::string& Path)
+namespace std
 {
-    return std::string{STARSIGHT_DIRECTORY} + "/" + Path;
+    using fpath = filesystem::path;
 }
+
+std::fpath ProjectAbsolutePath(const std::string& RelativePath);
+
+std::vector<uint8_t> ReadFileBinary(std::fpath filepath, bool create = false);
+std::future<std::vector<uint8_t>> ReadFileBinaryAsync(std::fpath, bool create = false);
+void WriteFileBinary(std::fpath filepath, std::vector<uint8_t>&& data, bool create = false);
 
 #endif //STARSIGHT_FILESYSTEM_HPP

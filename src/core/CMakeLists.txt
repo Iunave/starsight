@@ -4,6 +4,9 @@ add_library(starsight_core
         src/assertion.cpp
         src/filesystem.cpp
         src/functions.asm
+        src/time.cpp
+        src/utility_functions.cpp
+        src/resource.cpp
 )
 
 add_library(starsight::core ALIAS starsight_core)
@@ -18,8 +21,11 @@ target_compile_definitions(starsight_core
 )
 
 target_link_libraries(starsight_core
+        PUBLIC pthread
+        PUBLIC Taskflow
         PUBLIC fmt
         PUBLIC assert
         PUBLIC quill
         PUBLIC glm
+        PUBLIC tbb
 )

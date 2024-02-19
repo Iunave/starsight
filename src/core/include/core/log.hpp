@@ -17,4 +17,7 @@ quill::Logger* GetQuillLogger();
 #undef LOG_ERROR
 #define LOG_ERROR(fmt, ...) QUILL_LOG_ERROR(GetQuillLogger(), fmt, ##__VA_ARGS__)
 
+#undef LOG_CRITICAL
+#define LOG_CRITICAL(fmt, ...) QUILL_LOG_CRITICAL(GetQuillLogger(), fmt, ##__VA_ARGS__)
+
 #endif //STARSIGHT_LOG_HPP

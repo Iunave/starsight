@@ -90,9 +90,9 @@ vk::ImageSubresourceRange vkutil::flat_subresource_range(vk::ImageAspectFlagBits
             .setBaseMipLevel(0);
 }
 
-uint32_t vkutil::groupcount(uint32_t total_size, uint32_t local_size)
+uint32_t vkutil::GroupCount(uint32_t total_size, uint32_t local_size)
 {
     uint32_t count = total_size / local_size;
     uint32_t remainder = total_size % local_size;
-    return remainder != 0 ? count + 1 : count;
+    return count + (remainder != 0);
 }

@@ -1,6 +1,13 @@
 #ifndef STARSIGHT_VK_MEMORY_ALLOCATOR_HPP
 #define STARSIGHT_VK_MEMORY_ALLOCATOR_HPP
 
+#ifndef NDEBUG
+/*
+#include "core/log.hpp"
+#define VMA_DEBUG_LOG(...) LOG_DEBUG(__VA_ARGS__)
+*/
+#endif
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnullability-completeness"
 
